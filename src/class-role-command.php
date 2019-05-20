@@ -12,13 +12,19 @@ use WP_User;
  * @package Spacedmonkey\Users
  */
 class Role_Command extends WP_CLI_Command {
+
 	/**
 	 * @param $args
 	 * @param $assoc_args
 	 */
 	public function create_table( $args, $assoc_args ) {
-		delete_site_option('user_role.db.version');
-		get_wp_user_role()::check_table();
+		$result = get_wp_user_role()::check_table();
+		if ( 'created' === $result ) {
+			WP_CLI::success( __( 'Table created', 'wp-user-role' ) );
+
+			return;
+		}
+		WP_CLI::success( __( 'Table already exist', 'wp-user-role' ) );
 	}
 
 	/**
@@ -30,7 +36,10 @@ class Role_Command extends WP_CLI_Command {
 
 		$user_ids = $wpdb->get_col( "SELECT ID FROM {$wpdb->users}" );
 		$count    = count( $user_ids );
-		$notify   = Utils\make_progress_bar( 'Migrate users', $count );
+		$success  = 0;
+		$fails    = 0;
+		WP_CLI::line( sprintf( __( 'Migrating %d users.', 'wp-user-role' ), $count ) );
+		$notify = Utils\make_progress_bar( __( 'Migrate users', 'wp-user-role' ), $count );
 		foreach ( $user_ids as $user_id ) {
 			$site_ids = $this->get_user_site_ids( $user_id );
 			foreach ( $site_ids as $blog_id ) {
@@ -38,13 +47,21 @@ class Role_Command extends WP_CLI_Command {
 				$network_id = get_wp_user_role()->get_network_id( $blog_id );
 				get_wp_user_role()->remove_roles( [ 'user_id' => $user_id, 'site_id' => $blog_id ] );
 				foreach ( $user->roles as $role ) {
-					get_wp_user_role()->add_role( $user_id, $role, $blog_id, $network_id );
+					$result = get_wp_user_role()->add_role( $user_id, $role, $blog_id, $network_id );
+					if ( ! $result ) {
+						$fails ++;
+					} else {
+						$success ++;
+					}
 				}
 			}
 			$notify->tick();
 		}
 		$notify->finish();
 
+		update_network_option( get_current_network_id(), 'user_role.migrated', 1 );
+
+		WP_CLI::success( sprintf( __( 'Successfully migrated %d roles with %d errors.', 'wp-user-role' ), $success, $fails ) );;
 	}
 
 	/**
@@ -55,12 +72,14 @@ class Role_Command extends WP_CLI_Command {
 		global $wpdb;
 
 		if ( ! is_multisite() ) {
-			WP_CLI::error( 'Must be multisite to run.' );
+			WP_CLI::error( __( 'Must be multisite to run.', 'wp-user-role' ) );
+
+			return;
 		}
 
 		$network_ids = get_networks( [ 'fields' => 'ids' ] );
-		$count    = count( $network_ids );
-		$notify   = Utils\make_progress_bar( 'Migrate super admins', $count );
+		$count       = count( $network_ids );
+		$notify      = Utils\make_progress_bar( __( 'Migrate super admins', 'wp-user-role' ), $count );
 		foreach ( $network_ids as $network_id ) {
 			get_wp_user_role()->populate_super_admins( get_network_option( $network_id, 'site_admins', [] ), $network_id );
 			$notify->tick();
@@ -73,7 +92,13 @@ class Role_Command extends WP_CLI_Command {
 	 * @param $assoc_args
 	 */
 	public function drop_table( $args, $assoc_args ) {
+		$result = get_wp_user_role()::drop_table();
+		if ( ! $result ) {
+			WP_CLI::error( __( 'Unable to delete table', 'wp-user-role' ) );
 
+			return;
+		}
+		WP_CLI::success( __( 'Table dropped.', 'wp-user-role' ) );
 	}
 
 

@@ -31,7 +31,14 @@ function wp_user_role_activation() {
 	get_wp_user_role()::activate();
 }
 
+function wp_user_role_uninstall(){
+	get_wp_user_role()::uninstall();
+}
+
+
+
 register_activation_hook( __FILE__, 'wp_user_role_activation' );
+register_uninstall_hook(__FILE__ , 'wp_user_role_uninstall' );
 
 get_wp_user_role()->bootstrap();
 
