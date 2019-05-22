@@ -39,14 +39,14 @@ function wp_user_roles() {
  * Activation hook.
  */
 function wp_user_roles_activation() {
-	wp_user_roles()::activate();
+	wp_user_roles()->activate();
 }
 
 /**
  * Uninstall hook.
  */
 function wp_user_roles_uninstall() {
-	wp_user_roles()::uninstall();
+	wp_user_roles()->uninstall();
 }
 
 
