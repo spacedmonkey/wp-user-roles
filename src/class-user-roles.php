@@ -31,7 +31,7 @@ class User_Roles {
 	 * Roles constructor.
 	 */
 	public function __construct() {
-		self::startup();
+		$this->startup();
 	}
 
 	/**
@@ -73,22 +73,22 @@ class User_Roles {
 	/**
 	 * Activation hook.
 	 */
-	public static function activate() {
-		self::check_table();
+	public function activate() {
+		$this->check_table();
 	}
 
 	/**
 	 * Uninstall hook.
 	 */
-	public static function uninstall() {
-		self::drop_table();
+	public function uninstall() {
+		$this->drop_table();
 	}
 
 
 	/**
 	 * Startup bootstraps in the new table.
 	 */
-	public static function startup() {
+	public function startup() {
 		// Define the table variables.
 		if ( empty( $GLOBALS['wpdb']->userrole ) ) {
 			$GLOBALS['wpdb']->userrole        = $GLOBALS['wpdb']->base_prefix . self::TABLE_NAME;
@@ -102,12 +102,12 @@ class User_Roles {
 	 *
 	 * @return string|boolean One of 'exists' (table already existed), 'created' (table was created), or false if could not be created.
 	 */
-	public static function check_table() {
+	public function check_table() {
 		global $wpdb;
 		if ( get_network_option( get_current_network_id(), 'user_role.db.version' ) === self::VERSION ) {
 			return 'exists';
 		}
-		self::startup();
+		$this->startup();
 		$schema = "CREATE TABLE {$wpdb->userrole} (
 			id bigint(20) NOT NULL auto_increment,
 			site_id bigint(20) NOT NULL default 0,
