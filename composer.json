@@ -1,6 +1,6 @@
 {
   "name": "spacedmonkey/wp-user-roles",
-  "description": "Cache the results of query in WP_User_Query to save SQL queries",
+  "description": "Improve performance of user queries by adding a new table.",
   "homepage": "https://github.com/spacedmonkey/wp-user-roles",
   "type": "wordpress-muplugin",
   "license"    : "GPL-2.0-or-later",

@@ -1,13 +1,13 @@
 <?php
 /**
  * Plugin Name:     WP User Roles
- * Plugin URI:      PLUGIN SITE HERE
- * Description:     Add new table for user roles
+ * Plugin URI:      https://www.spacedmonkey.com/
+ * Description:     Improve performance of user queries by adding a new table.
  * Author:          Jonny Harris
  * Author URI:      https://www.spacedmonkey.com/
  * Text Domain:     wp-user-roles
  * Domain Path:     /languages
- * Version:         0.1.0
+ * Version:         1.0.0
  *
  * @package wp-user-roles
  */
