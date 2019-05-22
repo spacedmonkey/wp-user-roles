@@ -26,7 +26,7 @@ class Role_Command extends WP_CLI_Command {
 	 * @param array $assoc_args
 	 */
 	public function create_table( array $args, array $assoc_args ) {
-		$result = get_wp_user_role()::check_table();
+		$result = get_wp_user_role()->check_table();
 		if ( 'created' === $result ) {
 			WP_CLI::success( __( 'Table created', 'wp-user-roles' ) );
 
@@ -113,7 +113,7 @@ class Role_Command extends WP_CLI_Command {
 	 * @param array $assoc_args
 	 */
 	public function drop_table( array $args = [], array $assoc_args = [] ) {
-		$result = get_wp_user_role()::drop_table();
+		$result = get_wp_user_role()->drop_table();
 		if ( ! $result ) {
 			WP_CLI::error( __( 'Unable to delete table', 'wp-user-roles' ) );
 
