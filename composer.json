@@ -1,0 +1,30 @@
+{
+  "name": "spacedmonkey/wp-user-roles",
+  "description": "Cache the results of query in WP_User_Query to save SQL queries",
+  "homepage": "https://github.com/spacedmonkey/wp-user-roles",
+  "type": "wordpress-muplugin",
+  "license"    : "GPL-2.0-or-later",
+  "authors": [
+    {
+      "name": "Jonny Harris",
+      "email": "jon@spacedmonkey.co.uk"
+    }
+  ],
+  "support"    : {
+    "issues": "https://github.com/spacedmonkey/wp-user-roles/issues",
+    "source": "https://github.com/spacedmonkey/wp-user-roles"
+  },
+  "require": {
+    "php": ">=5.6",
+    "composer/installers": "~1.0"
+  },
+  "require-dev": {
+    "oomphinc/composer-installers-extender": "^1.1",
+    "wp-coding-standards/wpcs": "*",
+    "automattic/vipwpcs": "*",
+    "phpcompatibility/php-compatibility": "*",
+    "phpcompatibility/phpcompatibility-paragonie": "*",
+    "phpcompatibility/phpcompatibility-wp": "*",
+    "dealerdirect/phpcodesniffer-composer-installer": "^0.4.3"
+  }
+}

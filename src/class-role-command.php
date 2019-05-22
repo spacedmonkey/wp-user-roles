@@ -1,4 +1,9 @@
 <?php
+/**
+ * WP CLI Command.
+ *
+ * @package wp-user-roles
+ */
 
 namespace Spacedmonkey\Users;
 
@@ -9,43 +14,54 @@ use WP_User;
 
 /**
  * Class Role_Command
+ *
  * @package Spacedmonkey\Users
  */
 class Role_Command extends WP_CLI_Command {
 
 	/**
-	 * @param $args
-	 * @param $assoc_args
+	 * Create table.
+	 *
+	 * @param array $args
+	 * @param array $assoc_args
 	 */
-	public function create_table( $args, $assoc_args ) {
+	public function create_table( array $args, array $assoc_args ) {
 		$result = get_wp_user_role()::check_table();
 		if ( 'created' === $result ) {
-			WP_CLI::success( __( 'Table created', 'wp-user-role' ) );
+			WP_CLI::success( __( 'Table created', 'wp-user-roles' ) );
 
 			return;
 		}
-		WP_CLI::success( __( 'Table already exist', 'wp-user-role' ) );
+		WP_CLI::success( __( 'Table already exist', 'wp-user-roles' ) );
 	}
 
 	/**
-	 * @param $args
-	 * @param $assoc_args
+	 * Migrate existing users.
+	 *
+	 * @param array $args
+	 * @param array $assoc_args
 	 */
-	public function migrate( $args, $assoc_args ) {
+	public function migrate( array $args = [], array $assoc_args = [] ) {
 		global $wpdb;
 
 		$user_ids = $wpdb->get_col( "SELECT ID FROM {$wpdb->users}" );
 		$count    = count( $user_ids );
 		$success  = 0;
 		$fails    = 0;
-		WP_CLI::line( sprintf( __( 'Migrating %d users.', 'wp-user-role' ), $count ) );
-		$notify = Utils\make_progress_bar( __( 'Migrate users', 'wp-user-role' ), $count );
+		/* translators: number of users. in wp-cli. */
+		WP_CLI::line( sprintf( __( 'Migrating %d users.', 'wp-user-roles' ), $count ) );
+		$notify = Utils\make_progress_bar( __( 'Migrate users', 'wp-user-roles' ), $count );
 		foreach ( $user_ids as $user_id ) {
 			$site_ids = $this->get_user_site_ids( $user_id );
 			foreach ( $site_ids as $blog_id ) {
 				$user       = new WP_User( $user_id, '', $blog_id );
 				$network_id = get_wp_user_role()->get_network_id( $blog_id );
-				get_wp_user_role()->remove_roles( [ 'user_id' => $user_id, 'site_id' => $blog_id ] );
+				get_wp_user_role()->remove_roles(
+					[
+						'user_id' => $user_id,
+						'site_id' => $blog_id,
+					]
+				);
 				foreach ( $user->roles as $role ) {
 					$result = get_wp_user_role()->add_role( $user_id, $role, $blog_id, $network_id );
 					if ( ! $result ) {
@@ -61,25 +77,28 @@ class Role_Command extends WP_CLI_Command {
 
 		update_network_option( get_current_network_id(), 'user_role.migrated', 1 );
 
-		WP_CLI::success( sprintf( __( 'Successfully migrated %d roles with %d errors.', 'wp-user-role' ), $success, $fails ) );;
+		/* translators: number of migrated users, number of users in wp-cli. */
+		WP_CLI::success( sprintf( __( 'Successfully migrated %1$d roles with %2$d errors.', 'wp-user-roles' ), $success, $fails ) );
 	}
 
 	/**
-	 * @param $args
-	 * @param $assoc_args
+	 * Migrate super admins (only for multisite).
+	 *
+	 * @param array $args
+	 * @param array $assoc_args
 	 */
-	public function migrate_superadmin( $args, $assoc_args ) {
+	public function migrate_superadmin( array $args = [], array $assoc_args = [] ) {
 		global $wpdb;
 
 		if ( ! is_multisite() ) {
-			WP_CLI::error( __( 'Must be multisite to run.', 'wp-user-role' ) );
+			WP_CLI::error( __( 'Must be multisite to run.', 'wp-user-roles' ) );
 
 			return;
 		}
 
 		$network_ids = get_networks( [ 'fields' => 'ids' ] );
 		$count       = count( $network_ids );
-		$notify      = Utils\make_progress_bar( __( 'Migrate super admins', 'wp-user-role' ), $count );
+		$notify      = Utils\make_progress_bar( __( 'Migrate super admins', 'wp-user-roles' ), $count );
 		foreach ( $network_ids as $network_id ) {
 			get_wp_user_role()->populate_super_admins( get_network_option( $network_id, 'site_admins', [] ), $network_id );
 			$notify->tick();
@@ -88,17 +107,19 @@ class Role_Command extends WP_CLI_Command {
 	}
 
 	/**
-	 * @param $args
-	 * @param $assoc_args
+	 * Drop wp_user_role table.
+	 *
+	 * @param array $args
+	 * @param array $assoc_args
 	 */
-	public function drop_table( $args, $assoc_args ) {
+	public function drop_table( array $args = [], array $assoc_args = [] ) {
 		$result = get_wp_user_role()::drop_table();
 		if ( ! $result ) {
-			WP_CLI::error( __( 'Unable to delete table', 'wp-user-role' ) );
+			WP_CLI::error( __( 'Unable to delete table', 'wp-user-roles' ) );
 
 			return;
 		}
-		WP_CLI::success( __( 'Table dropped.', 'wp-user-role' ) );
+		WP_CLI::success( __( 'Table dropped.', 'wp-user-roles' ) );
 	}
 
 

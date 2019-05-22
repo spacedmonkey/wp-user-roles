@@ -2,7 +2,7 @@
 /**
  * Class SampleTest
  *
- * @package Wp_Roles
+ * @package wp_user_roles
  */
 
 /**

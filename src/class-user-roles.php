@@ -1,4 +1,9 @@
 <?php
+/**
+ * Main plugin file.
+ *
+ * @package wp-user-roles
+ */
 
 namespace Spacedmonkey\Users;
 
@@ -7,17 +12,18 @@ use WP_Meta_Query;
 
 /**
  * Class User_Roles
+ *
  * @package Spacedmonkey\Users
  */
 class User_Roles {
 
 	/**
-	 *
+	 * Constant defining table name.
 	 */
 	const TABLE_NAME = 'userrole';
 
 	/**
-	 *
+	 * Database version number.
 	 */
 	const VERSION = '1.0.0';
 
@@ -29,10 +35,9 @@ class User_Roles {
 	}
 
 	/**
-	 *
+	 * Bootstrap all the filters and actions.
 	 */
 	public function bootstrap() {
-
 		add_action( 'add_user_role', [ $this, 'add_user_role' ], 15, 2 );
 		add_action( 'remove_user_role', [ $this, 'remove_user_role' ], 15, 2 );
 		add_action( 'set_user_role', [ $this, 'set_user_role' ], 15, 2 );
@@ -63,29 +68,28 @@ class User_Roles {
 		add_action( 'wp_delete_site', [ $this, 'wp_delete_site' ], 15, 1 );
 
 		add_action( 'admin_init', [ $this, 'check_table' ], 15, 1 );
-
 	}
 
 	/**
-	 *
+	 * Activation hook.
 	 */
-	static function activate() {
+	public static function activate() {
 		self::check_table();
 	}
 
 	/**
-	 *
+	 * Uninstall hook.
 	 */
-	static function uninstall() {
+	public static function uninstall() {
 		self::drop_table();
 	}
 
 
 	/**
-	 *
+	 * Startup bootstraps in the new table.
 	 */
-	static function startup() {
-		// Define the table variables
+	public static function startup() {
+		// Define the table variables.
 		if ( empty( $GLOBALS['wpdb']->userrole ) ) {
 			$GLOBALS['wpdb']->userrole        = $GLOBALS['wpdb']->base_prefix . self::TABLE_NAME;
 			$GLOBALS['wpdb']->global_tables[] = self::TABLE_NAME;
@@ -94,11 +98,11 @@ class User_Roles {
 
 
 	/**
-	 * Check the Mercator mapping table
+	 * Check the User role table.
 	 *
-	 * @return string|boolean One of 'exists' (table already existed), 'created' (table was created), or false if could not be created
+	 * @return string|boolean One of 'exists' (table already existed), 'created' (table was created), or false if could not be created.
 	 */
-	static function check_table() {
+	public static function check_table() {
 		global $wpdb;
 		if ( get_network_option( get_current_network_id(), 'user_role.db.version' ) === self::VERSION ) {
 			return 'exists';
@@ -126,7 +130,7 @@ class User_Roles {
 		update_network_option( get_current_network_id(), 'user_role.db.version', self::VERSION );
 
 		if ( empty( $result ) ) {
-			// No changes, database already exists and is up-to-date
+			// No changes, database already exists and is up-to-date.
 			return 'exists';
 		}
 		// utf8mb4 conversion.
@@ -136,9 +140,11 @@ class User_Roles {
 	}
 
 	/**
+	 * Drop table and reset options.
+	 *
 	 * @return bool|false|int
 	 */
-	static function drop_table() {
+	public static function drop_table() {
 		global $wpdb;
 
 		delete_network_option( get_current_network_id(), 'user_role.db.version' );
@@ -148,8 +154,10 @@ class User_Roles {
 	}
 
 	/**
-	 * @param $user_id
-	 * @param $role
+	 * Filter add_user_role to save to new table.
+	 *
+	 * @param int    $user_id User ID to update.
+	 * @param string $role Value of role to change.
 	 */
 	public function add_user_role( $user_id, $role ) {
 		$blog_id    = get_current_blog_id();
@@ -158,84 +166,132 @@ class User_Roles {
 	}
 
 	/**
-	 * @param $user_id
-	 * @param $role
+	 *  Filter remove_user_role to save to new table.
+	 *
+	 * @param int    $user_id User ID to update.
+	 * @param string $role Value of role to change.
 	 */
 	public function remove_user_role( $user_id, $role ) {
 		$blog_id = get_current_blog_id();
-		$this->remove_roles( [ 'user_id' => $user_id, 'role' => $role, 'site_id' => $blog_id ] );
+		$this->remove_roles(
+			[
+				'user_id' => $user_id,
+				'role'    => $role,
+				'site_id' => $blog_id,
+			]
+		);
 	}
 
 	/**
-	 * @param $user_id
+	 * On update user in wp_insert_user.
+	 *
+	 * @param int $user_id User ID to update.
 	 */
 	public function profile_update( $user_id ) {
 		$this->after_user_save( $user_id );
 	}
 
 	/**
-	 * @param $user_id
+	 * On register user in wp_insert_user.
+	 *
+	 * @param int $user_id User ID to update.
 	 */
 	public function user_register( $user_id ) {
 		$this->after_user_save( $user_id );
 	}
 
 	/**
-	 * @param $user_id
-	 * @param $role
+	 * On set user role, remove existing roles and save the new one.
+	 *
+	 * @param int    $user_id User ID to update.
+	 * @param string $role Value of role to change.
 	 */
 	public function set_user_role( $user_id, $role ) {
 		$blog_id    = get_current_blog_id();
 		$network_id = $this->get_network_id( $blog_id );
 
-		$this->remove_roles( [ 'user_id' => $user_id, 'site_id' => $blog_id, 'network_id' => $network_id ] );
+		$this->remove_roles(
+			[
+				'user_id'    => $user_id,
+				'site_id'    => $blog_id,
+				'network_id' => $network_id,
+			]
+		);
 		if ( ! empty( $role ) ) {
 			$this->add_role( $user_id, $role, $blog_id, $network_id );
 		}
 	}
 
 	/**
-	 * @param $user_id
-	 * @param $role
-	 * @param $blog_id
+	 * Hook into adding a user to a blog and also add the role.
+	 *
+	 * @param int    $user_id User ID to update.
+	 * @param string $role Value of role to change.
+	 * @param int    $blog_id Site ID to update. Only for multisite.
 	 */
 	public function add_user_to_blog( $user_id, $role, $blog_id ) {
 		$this->add_role( $user_id, $role, $blog_id );
 	}
 
 	/**
-	 * @param $user_id
-	 * @param $blog_id
+	 * Hook into removing a user to a blog and also remove the role.
+	 *
+	 * @param int $user_id User ID to update.
+	 * @param int $blog_id Site ID to update. Only for multisite.
 	 */
 	public function remove_user_from_blog( $user_id, $blog_id ) {
-		$this->remove_roles( [ 'user_id' => $user_id, 'site_id' => $blog_id ] );
+		$this->remove_roles(
+			[
+				'user_id' => $user_id,
+				'site_id' => $blog_id,
+			]
+		);
 	}
 
 	/**
-	 * @param $id
+	 * On delete user, also remove role.
+	 *
+	 * @param int $user_id User ID to update.
 	 */
 	public function deleted_user( $user_id ) {
 		$blog_id = get_current_blog_id();
-		$this->remove_roles( [ 'user_id' => $user_id, 'site_id' => $blog_id ] );
+		$this->remove_roles(
+			[
+				'user_id' => $user_id,
+				'site_id' => $blog_id,
+			]
+		);
 	}
 
 	/**
-	 * @param $user_id
+	 * On delete user, also remove all roles.
+	 *
+	 * @param int $user_id User ID to update.
 	 */
 	public function wpmu_delete_user( $user_id ) {
 		$this->remove_roles( [ 'user_id' => $user_id ] );
 	}
 
 	/**
-	 * @param $user_id
+	 * On remove super admin, also remove the global role.
+	 *
+	 * @param int $user_id User ID to update.
 	 */
 	public function revoke_super_admin( $user_id ) {
 		$network_id = get_current_network_id();
-		$this->remove_roles( [ 'user_id' => $user_id, 'role' => 'super-admin', 'network_id' => $network_id ] );
+		$this->remove_roles(
+			[
+				'user_id'    => $user_id,
+				'role'       => 'super-admin',
+				'network_id' => $network_id,
+			]
+		);
 	}
 
 	/**
-	 * @param $user_id
+	 * On add super admin, also add the global role.
+	 *
+	 * @param int $user_id User ID to update.
 	 */
 	public function granted_super_admin( $user_id ) {
 		$network_id = get_current_network_id();
@@ -243,18 +299,22 @@ class User_Roles {
 	}
 
 	/**
-	 * @param $option
-	 * @param $value
-	 * @param $old_value
-	 * @param $network_id
+	 * Hook into update network option, and save global roles.
+	 *
+	 * @param string $option Unused.
+	 * @param mixed  $value Value of super admins.
+	 * @param mixed  $old_value Unused.
+	 * @param int    $network_id Network id.
 	 */
-	function update_site_option_site_admins( $option, $value, $old_value, $network_id ) {
+	public function update_site_option_site_admins( $option, $value, $old_value, $network_id ) {
 		$this->populate_super_admins( $value, $network_id );
 	}
 
 	/**
-	 * @param $user_logins
-	 * @param $network_id
+	 * Helper function to populate super admins.
+	 *
+	 * @param array $user_logins array of user logins.
+	 * @param int   $network_id Network id.
 	 */
 	public function populate_super_admins( $user_logins, $network_id ) {
 		$users    = array_map(
@@ -265,28 +325,41 @@ class User_Roles {
 		);
 		$user_ids = wp_list_pluck( $users, 'ID' );
 		$user_ids = array_filter( $user_ids );
-		$this->remove_roles( [ 'network_id' => $network_id, 'role' => 'super-admin' ] );
+		$this->remove_roles(
+			[
+				'network_id' => $network_id,
+				'role'       => 'super-admin',
+			]
+		);
 		foreach ( $user_ids as $user_id ) {
 			$this->add_role( $user_id, 'super-admin', 0, $network_id );
 		}
 	}
 
 	/**
-	 * @param $sitemeta
-	 * @param $network_id
+	 * Hook into the create of a network.
+	 *
+	 * @param array $sitemeta Unused.
+	 * @param int   $network_id Network id.
 	 */
 	public function populate_network_meta( $sitemeta, $network_id ) {
 		$this->populate_super_admins( get_network_option( $network_id, 'site_admins', [] ), $network_id );
 	}
 
 	/**
-	 * @param $users
-	 * @param $wp_user_query
+	 * Hook into users_pre_query in WP_User_Query and override the query.
+	 *
+	 * @param array         $users Existing filter values.
+	 * @param WP_User_Query $wp_user_query Current WP_User_Query object.
 	 *
 	 * @return mixed
 	 */
 	public function users_pre_query( $users, $wp_user_query ) {
 		global $wpdb;
+
+		if ( '1' !== get_network_option( get_current_network_id(), 'user_role.migrated', 0 ) ) {
+			return $users;
+		}
 
 		$qv               = $wp_user_query->query_vars;
 		$this->meta_query = new WP_Meta_Query();
@@ -315,7 +388,6 @@ class User_Roles {
 			$role__not_in = (array) $qv['role__not_in'];
 		}
 
-
 		$query_where_new = '';
 
 		if ( $blog_id ) {
@@ -324,7 +396,6 @@ class User_Roles {
 
 		if ( ( ! empty( $roles ) || ! empty( $role__in ) || ! empty( $role__not_in ) ) || is_multisite() ) {
 			$role_queries = array();
-
 
 			$roles_clauses = array( 'relation' => 'AND' );
 			if ( ! empty( $roles ) ) {
@@ -336,7 +407,7 @@ class User_Roles {
 					);
 				}
 
-				$role_queries[]  = $roles_clauses;
+				$role_queries[]   = $roles_clauses;
 				$query_where_new .= " AND $wpdb->userrole.role IN  ( '" . implode( "', '", $wpdb->_escape( $roles ) ) . "' )";
 			}
 
@@ -406,18 +477,18 @@ class User_Roles {
 				$wp_user_query->query_from .= $query_from_new;
 			}
 
-
 			$wp_user_query->query_where = str_replace( $query_where, $query_where_new, $wp_user_query->query_where );
-
 		}
 
 		return $users;
 	}
 
 	/**
-	 * @param $count
-	 * @param $strategy
-	 * @param $site_id
+	 * High jack the user count, and use a simple query to get count values.
+	 *
+	 * @param int    $count Pre filter count.
+	 * @param string $strategy Unused.
+	 * @param int    $site_id Site id.
 	 *
 	 * @return array
 	 */
@@ -436,8 +507,8 @@ class User_Roles {
 		}
 
 		$counts = [
-			"total_users" => $total_count,
-			"avail_roles" => $total_count_values,
+			'total_users' => $total_count,
+			'avail_roles' => $total_count_values,
 		];
 
 		return $counts;
@@ -445,24 +516,29 @@ class User_Roles {
 
 
 	/**
-	 * @param $new_network_id
-	 * @param $r
+	 * Hook into new network creation to add super admins.
+	 *
+	 * @param int $network_id New network id.
 	 */
-	public function add_network( $network_id, $r ) {
+	public function add_network( $network_id ) {
 		$this->populate_super_admins( get_network_option( $network_id, 'site_admins', [] ) );
 	}
 
 	/**
-	 * @param $network
+	 * Hook into deleting network.
+	 *
+	 * @param WP_Network $network Network object that was deleted.
 	 */
 	public function delete_network( $network ) {
 		$this->remove_roles( [ 'network_id' => $network->site_id ] );
 	}
 
 	/**
-	 * @param $site_id
-	 * @param $network_id
-	 * @param $new_network_id
+	 * Move site from one network to another network.
+	 *
+	 * @param int $site_id Site to be moved.
+	 * @param int $network_id Old network id.
+	 * @param int $new_network_id new network id.
 	 */
 	public function move_site( $site_id, $network_id, $new_network_id ) {
 		if ( $network_id === $new_network_id ) {
@@ -471,34 +547,43 @@ class User_Roles {
 
 		global $wpdb;
 
-		$wpdb->update( $wpdb->userrole, [
-			'network_id' => $new_network_id
-		], [
-			'site_id' => $site_id
-		] );
+		$wpdb->update(
+			$wpdb->userrole,
+			[
+				'network_id' => $new_network_id,
+			],
+			[
+				'site_id' => $site_id,
+			]
+		);
 	}
 
 	/**
-	 * @param $new_site
-	 * @param $old_site
+	 * If site is updated, check if it moved network as well.
+	 *
+	 * @param WP_Site $new_site New site object.
+	 * @param WP_Site $old_site Old site object.
 	 */
 	public function wp_update_site( $new_site, $old_site ) {
 		$this->move_site( $new_site->blog_id, $old_site->network_id, $new_site->network_id );
-
 	}
 
 	/**
-	 * @param $old_site
+	 * Hook into delete site, also delete all roles.
+	 *
+	 * @param WP_Site $old_site Old site object.
 	 */
 	public function wp_delete_site( $old_site ) {
 		$this->remove_roles( [ 'site_id' => $old_site->blog_id ] );
 	}
 
 	/**
-	 * @param        $user_id
-	 * @param string $role
-	 * @param int    $blog_id
-	 * @param int    $network_id
+	 * Helper method to add role by site, network and user.
+	 *
+	 * @param int    $user_id User ID to update.
+	 * @param string $role Value of role to change.
+	 * @param int    $blog_id Site ID to update. Only for multisite.
+	 * @param int    $network_id Network id to add role too.
 	 *
 	 * @return bool|false|int
 	 */
@@ -507,19 +592,24 @@ class User_Roles {
 		$test = $this->get_role( $user_id, $role, $blog_id, $network_id );
 		$id   = false;
 		if ( ! $test ) {
-			$id = $wpdb->insert( $wpdb->userrole, [
-				'user_id'    => $user_id,
-				'site_id'    => $blog_id,
-				'network_id' => $network_id,
-				'role'       => $role
-			] );
+			$id = $wpdb->insert(
+				$wpdb->userrole,
+				[
+					'user_id'    => $user_id,
+					'site_id'    => $blog_id,
+					'network_id' => $network_id,
+					'role'       => $role,
+				]
+			);
 		}
 
 		return $id;
 	}
 
 	/**
-	 * @param array $args
+	 * Remove multiple roles at once.
+	 *
+	 * @param array $args Params passed to wpdb delete.
 	 *
 	 * @return false|int
 	 */
@@ -530,10 +620,12 @@ class User_Roles {
 	}
 
 	/**
-	 * @param int    $user_id
-	 * @param string $role
-	 * @param int    $blog_id
-	 * @param int    $network_id
+	 * Helper method to get role by user, role, blog and netowrk.
+	 *
+	 * @param int    $user_id User ID to update.
+	 * @param string $role Value of role to change.
+	 * @param int    $blog_id Site ID to update. Only for multisite.
+	 * @param int    $network_id Network id to get role from.
 	 *
 	 * @return array|object|void|null
 	 */
@@ -545,7 +637,9 @@ class User_Roles {
 
 
 	/**
-	 * @param $user_id
+	 * Hook into after user save and add roles.
+	 *
+	 * @param int $user_id User ID to update.
 	 *
 	 * @return WP_User
 	 */
@@ -556,7 +650,12 @@ class User_Roles {
 		$user = new WP_User( $user_id, '', $blog_id );
 
 		if ( ! $user ) {
-			$this->remove_roles( [ 'user_id' => $user_id, 'site_id' => $blog_id ] );
+			$this->remove_roles(
+				[
+					'user_id' => $user_id,
+					'site_id' => $blog_id,
+				]
+			);
 		}
 		foreach ( $user->roles as $role ) {
 			$this->add_role( $user_id, $role, $blog_id, $network_id );
@@ -566,7 +665,9 @@ class User_Roles {
 	}
 
 	/**
-	 * @param $blog_id
+	 * Get network id, from blog_id.
+	 *
+	 * @param int $blog_id source blog id.
 	 *
 	 * @return int
 	 */
