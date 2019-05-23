@@ -149,6 +149,7 @@ class User_Roles {
 
 		delete_network_option( get_current_network_id(), 'user_role.db.version' );
 		delete_network_option( get_current_network_id(), 'user_role.migrated' );
+		delete_network_option( get_current_network_id(), 'user_role.super_admins.migrated' );
 
 		return $wpdb->query( "DROP TABLE IF EXISTS `$wpdb->userrole`" );
 	}
@@ -357,6 +358,7 @@ class User_Roles {
 	 */
 	public function populate_network_meta( $sitemeta, $network_id ) {
 		$this->populate_super_admins( get_network_option( $network_id, 'site_admins', [] ), $network_id );
+
 		return $sitemeta;
 	}
 
@@ -378,11 +380,13 @@ class User_Roles {
 		$qv               = $wp_user_query->query_vars;
 		$this->meta_query = new WP_Meta_Query();
 
-		$blog_id = 0;
-		if ( isset( $qv['blog_id'] ) ) {
-			$blog_id = absint( $qv['blog_id'] );
+		$blog_id     = 0;
+		$site_fields = [ 'blog_id', 'site_id' ];
+		foreach ( $site_fields as $site_field ) {
+			if ( isset( $qv[ $site_field ] ) ) {
+				$blog_id = absint( $qv[ $site_field ] );
+			}
 		}
-
 		$roles = array();
 		if ( isset( $qv['role'] ) ) {
 			if ( is_array( $qv['role'] ) ) {
@@ -405,7 +409,33 @@ class User_Roles {
 		$query_where_new = '';
 
 		if ( $blog_id ) {
-			$query_where_new = $wpdb->prepare( " AND $wpdb->userrole.site_id = %d", $blog_id );
+			$query_where_new = $wpdb->prepare( " AND {$wpdb->userrole}.site_id = %d", $blog_id );
+		}
+
+		// Parse site IDs for an IN clause.
+		if ( ! empty( $qv['site__in'] ) ) {
+			$query_where_new .= " AND {$wpdb->userrole}.site_id IN ( " . implode( ',', wp_parse_id_list( $qv['site__in'] ) ) . ' )';
+		}
+
+		// Parse site IDs for a NOT IN clause.
+		if ( ! empty( $qv['site__not_in'] ) ) {
+			$query_where_new .= " AND {$wpdb->userrole}.site_id NOT IN ( " . implode( ',', wp_parse_id_list( $qv['site__not_in'] ) ) . ' )';
+		}
+
+		$network_id = absint( $qv['network_id'] );
+
+		if ( ! empty( $network_id ) ) {
+			$query_where_new .= $wpdb->prepare( " AND {$wpdb->userrole}.network_id = %d", $network_id );
+		}
+
+		// Parse site network IDs for an IN clause.
+		if ( ! empty( $qv['network__in'] ) ) {
+			$query_where_new .= " AND {$wpdb->userrole}.network_id IN ( " . implode( ',', wp_parse_id_list( $qv['network__in'] ) ) . ' )';
+		}
+
+		// Parse site network IDs for a NOT IN clause.
+		if ( ! empty( $qv['network__not_in'] ) ) {
+			$query_where_new .= " AND {$wpdb->userrole}.network_id NOT IN ( " . implode( ',', wp_parse_id_list( $qv['network__not_in'] ) ) . ' )';
 		}
 
 		if ( ( ! empty( $roles ) || ! empty( $role__in ) || ! empty( $role__not_in ) ) || is_multisite() ) {

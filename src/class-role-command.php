@@ -20,13 +20,15 @@ use WP_User;
 class Role_Command extends WP_CLI_Command {
 
 	/**
-	 * Create table.
+	 * Create wp_user_role table.
 	 *
 	 * @param array $args
 	 * @param array $assoc_args
+	 *
+	 * @subcommand create-table
 	 */
 	public function create_table( array $args, array $assoc_args ) {
-		$result = get_wp_user_role()->check_table();
+		$result = wp_user_roles()->check_table();
 		if ( 'created' === $result ) {
 			WP_CLI::success( __( 'Table created', 'wp-user-roles' ) );
 
@@ -40,6 +42,8 @@ class Role_Command extends WP_CLI_Command {
 	 *
 	 * @param array $args
 	 * @param array $assoc_args
+	 *
+	 * @subcommand migrate
 	 */
 	public function migrate( array $args = [], array $assoc_args = [] ) {
 		global $wpdb;
@@ -55,15 +59,15 @@ class Role_Command extends WP_CLI_Command {
 			$site_ids = $this->get_user_site_ids( $user_id );
 			foreach ( $site_ids as $blog_id ) {
 				$user       = new WP_User( $user_id, '', $blog_id );
-				$network_id = get_wp_user_role()->get_network_id( $blog_id );
-				get_wp_user_role()->remove_roles(
+				$network_id = wp_user_roles()->get_network_id( $blog_id );
+				wp_user_roles()->remove_roles(
 					[
 						'user_id' => $user_id,
 						'site_id' => $blog_id,
 					]
 				);
 				foreach ( $user->roles as $role ) {
-					$result = get_wp_user_role()->add_role( $user_id, $role, $blog_id, $network_id );
+					$result = wp_user_roles()->add_role( $user_id, $role, $blog_id, $network_id );
 					if ( ! $result ) {
 						$fails ++;
 					} else {
@@ -76,7 +80,6 @@ class Role_Command extends WP_CLI_Command {
 		$notify->finish();
 
 		update_network_option( get_current_network_id(), 'user_role.migrated', 1 );
-
 		/* translators: number of migrated users, number of users in wp-cli. */
 		WP_CLI::success( sprintf( __( 'Successfully migrated %1$d roles with %2$d errors.', 'wp-user-roles' ), $success, $fails ) );
 	}
@@ -84,10 +87,17 @@ class Role_Command extends WP_CLI_Command {
 	/**
 	 * Migrate super admins (only for multisite).
 	 *
+	 * ## OPTIONS
+	 *
+	 *  [--network_id=<value>]
+	 * : Only list the networks with these ids values (comma-separated).
+	 *
 	 * @param array $args
 	 * @param array $assoc_args
+	 *
+	 * @subcommand migrate-super-admins
 	 */
-	public function migrate_superadmin( array $args = [], array $assoc_args = [] ) {
+	public function migrate_super_admins( array $args = [], array $assoc_args = [] ) {
 		global $wpdb;
 
 		if ( ! is_multisite() ) {
@@ -95,15 +105,21 @@ class Role_Command extends WP_CLI_Command {
 
 			return;
 		}
+		if ( isset( $assoc_args['network_id'] ) ) {
+			$network_ids = explode( ',', $assoc_args['network_id'] );
+		} else {
+			$network_ids = get_networks( [ 'fields' => 'ids' ] );
+		}
 
-		$network_ids = get_networks( [ 'fields' => 'ids' ] );
-		$count       = count( $network_ids );
-		$notify      = Utils\make_progress_bar( __( 'Migrate super admins', 'wp-user-roles' ), $count );
+		$count  = count( $network_ids );
+		$notify = Utils\make_progress_bar( __( 'Migrate super admins', 'wp-user-roles' ), $count );
 		foreach ( $network_ids as $network_id ) {
-			get_wp_user_role()->populate_super_admins( get_network_option( $network_id, 'site_admins', [] ), $network_id );
+			wp_user_roles()->populate_super_admins( get_network_option( $network_id, 'site_admins', [] ), $network_id );
 			$notify->tick();
 		}
 		$notify->finish();
+
+		update_network_option( get_current_network_id(), 'user_role.super_admins.migrated', 1 );
 	}
 
 	/**
@@ -111,9 +127,11 @@ class Role_Command extends WP_CLI_Command {
 	 *
 	 * @param array $args
 	 * @param array $assoc_args
+	 *
+	 * @subcommand drop-table
 	 */
 	public function drop_table( array $args = [], array $assoc_args = [] ) {
-		$result = get_wp_user_role()->drop_table();
+		$result = wp_user_roles()->drop_table();
 		if ( ! $result ) {
 			WP_CLI::error( __( 'Unable to delete table', 'wp-user-roles' ) );
 
