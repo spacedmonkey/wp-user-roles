@@ -157,7 +157,7 @@ class User_Roles {
 	 * Filter add_user_role to save to new table.
 	 *
 	 * @param int    $user_id User ID to update.
-	 * @param string $role Value of role to change.
+	 * @param string $role    Value of role to change.
 	 */
 	public function add_user_role( $user_id, $role ) {
 		$blog_id    = get_current_blog_id();
@@ -169,7 +169,7 @@ class User_Roles {
 	 *  Filter remove_user_role to save to new table.
 	 *
 	 * @param int    $user_id User ID to update.
-	 * @param string $role Value of role to change.
+	 * @param string $role    Value of role to change.
 	 */
 	public function remove_user_role( $user_id, $role ) {
 		$blog_id = get_current_blog_id();
@@ -204,7 +204,7 @@ class User_Roles {
 	 * On set user role, remove existing roles and save the new one.
 	 *
 	 * @param int    $user_id User ID to update.
-	 * @param string $role Value of role to change.
+	 * @param string $role    Value of role to change.
 	 */
 	public function set_user_role( $user_id, $role ) {
 		$blog_id    = get_current_blog_id();
@@ -226,11 +226,22 @@ class User_Roles {
 	 * Hook into adding a user to a blog and also add the role.
 	 *
 	 * @param int    $user_id User ID to update.
-	 * @param string $role Value of role to change.
+	 * @param string $role    Value of role to change.
 	 * @param int    $blog_id Site ID to update. Only for multisite.
 	 */
 	public function add_user_to_blog( $user_id, $role, $blog_id ) {
-		$this->add_role( $user_id, $role, $blog_id );
+		$network_id = $this->get_network_id( $blog_id );
+
+		$this->remove_roles(
+			[
+				'user_id'    => $user_id,
+				'site_id'    => $blog_id,
+				'network_id' => $network_id,
+			]
+		);
+		if ( ! empty( $role ) ) {
+			$this->add_role( $user_id, $role, $blog_id, $network_id );
+		}
 	}
 
 	/**
@@ -301,9 +312,9 @@ class User_Roles {
 	/**
 	 * Hook into update network option, and save global roles.
 	 *
-	 * @param string $option Unused.
-	 * @param mixed  $value Value of super admins.
-	 * @param mixed  $old_value Unused.
+	 * @param string $option     Unused.
+	 * @param mixed  $value      Value of super admins.
+	 * @param mixed  $old_value  Unused.
 	 * @param int    $network_id Network id.
 	 */
 	public function update_site_option_site_admins( $option, $value, $old_value, $network_id ) {
@@ -314,7 +325,7 @@ class User_Roles {
 	 * Helper function to populate super admins.
 	 *
 	 * @param array $user_logins array of user logins.
-	 * @param int   $network_id Network id.
+	 * @param int   $network_id  Network id.
 	 */
 	public function populate_super_admins( $user_logins, $network_id ) {
 		$users    = array_map(
@@ -339,17 +350,20 @@ class User_Roles {
 	/**
 	 * Hook into the create of a network.
 	 *
-	 * @param array $sitemeta Unused.
+	 * @param array $sitemeta   Unused.
 	 * @param int   $network_id Network id.
+	 *
+	 * @return mixed
 	 */
 	public function populate_network_meta( $sitemeta, $network_id ) {
 		$this->populate_super_admins( get_network_option( $network_id, 'site_admins', [] ), $network_id );
+		return $sitemeta;
 	}
 
 	/**
 	 * Hook into users_pre_query in WP_User_Query and override the query.
 	 *
-	 * @param array         $users Existing filter values.
+	 * @param array         $users         Existing filter values.
 	 * @param WP_User_Query $wp_user_query Current WP_User_Query object.
 	 *
 	 * @return mixed
@@ -486,9 +500,9 @@ class User_Roles {
 	/**
 	 * High jack the user count, and use a simple query to get count values.
 	 *
-	 * @param int    $count Pre filter count.
+	 * @param int    $count    Pre filter count.
 	 * @param string $strategy Unused.
-	 * @param int    $site_id Site id.
+	 * @param int    $site_id  Site id.
 	 *
 	 * @return array
 	 */
@@ -536,8 +550,8 @@ class User_Roles {
 	/**
 	 * Move site from one network to another network.
 	 *
-	 * @param int $site_id Site to be moved.
-	 * @param int $network_id Old network id.
+	 * @param int $site_id        Site to be moved.
+	 * @param int $network_id     Old network id.
 	 * @param int $new_network_id new network id.
 	 */
 	public function move_site( $site_id, $network_id, $new_network_id ) {
@@ -580,15 +594,20 @@ class User_Roles {
 	/**
 	 * Helper method to add role by site, network and user.
 	 *
-	 * @param int    $user_id User ID to update.
-	 * @param string $role Value of role to change.
-	 * @param int    $blog_id Site ID to update. Only for multisite.
+	 * @param int    $user_id    User ID to update.
+	 * @param string $role       Value of role to change.
+	 * @param int    $blog_id    Site ID to update. Only for multisite.
 	 * @param int    $network_id Network id to add role too.
 	 *
 	 * @return bool|false|int
 	 */
 	public function add_role( $user_id, $role = '', $blog_id = 0, $network_id = 0 ) {
 		global $wpdb;
+
+		if ( false === get_network_option( get_current_network_id(), 'user_role.db.version' ) ) {
+			return false;
+		}
+
 		$test = $this->get_role( $user_id, $role, $blog_id, $network_id );
 		$id   = false;
 		if ( ! $test ) {
@@ -616,23 +635,31 @@ class User_Roles {
 	public function remove_roles( array $args ) {
 		global $wpdb;
 
+		if ( false === get_network_option( get_current_network_id(), 'user_role.db.version' ) ) {
+			return false;
+		}
+
 		return $wpdb->delete( $wpdb->userrole, $args );
 	}
 
 	/**
 	 * Helper method to get role by user, role, blog and netowrk.
 	 *
-	 * @param int    $user_id User ID to update.
-	 * @param string $role Value of role to change.
-	 * @param int    $blog_id Site ID to update. Only for multisite.
+	 * @param int    $user_id    User ID to update.
+	 * @param string $role       Value of role to change.
+	 * @param int    $blog_id    Site ID to update. Only for multisite.
 	 * @param int    $network_id Network id to get role from.
 	 *
 	 * @return array|object|void|null
 	 */
-	private function get_role( $user_id = 0, $role = '', $blog_id = 0, $network_id = 0 ) {
+	public function get_role( $user_id = 0, $role = '', $blog_id = 0, $network_id = 0 ) {
 		global $wpdb;
 
-		return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$wpdb->userrole} WHERE user_id = %d AND role = %s AND site_id = %d AND network_id = %d", $user_id, $role, $blog_id, $network_id ) );
+		if ( false === get_network_option( get_current_network_id(), 'user_role.db.version' ) ) {
+			return null;
+		}
+
+		return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$wpdb->userrole} WHERE user_id = %d AND role = %s AND site_id = %d AND network_id = %d LIMIT 1", $user_id, $role, $blog_id, $network_id ) );
 	}
 
 
