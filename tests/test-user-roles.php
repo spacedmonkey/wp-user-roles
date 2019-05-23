@@ -9,14 +9,35 @@
  * Sample test case.
  */
 class UserRoleTest extends WP_UnitTestCase {
+	/**
+	 * @var
+	 */
 	protected static $author_ids;
+	/**
+	 * @var
+	 */
 	protected static $sub_ids;
+	/**
+	 * @var
+	 */
 	protected static $editor_ids;
+	/**
+	 * @var
+	 */
 	protected static $contrib_id;
+	/**
+	 * @var
+	 */
 	protected static $admin_ids;
 
+	/**
+	 * @var
+	 */
 	protected $user_id;
 
+	/**
+	 * @param $factory
+	 */
 	public static function wpSetUpBeforeClass( $factory ) {
 		wp_user_roles()->check_table();
 		self::$author_ids = $factory->user->create_many(
@@ -55,16 +76,25 @@ class UserRoleTest extends WP_UnitTestCase {
 	}
 
 
+	/**
+	 *
+	 */
 	function setUp() {
 		wp_user_roles()->check_table();
 		update_network_option( get_current_network_id(), 'user_role.migrated', 1 );
 	}
 
+	/**
+	 *
+	 */
 	function tearDown() {
 		wp_user_roles()->drop_table();
 	}
 
 
+	/**
+	 *
+	 */
 	function test_query_with_roles() {
 
 		// Users with foo = bar or baz restricted to the author role.
@@ -79,6 +109,9 @@ class UserRoleTest extends WP_UnitTestCase {
 		$this->assertEquals( $results, $query->get_results() );
 	}
 
+	/**
+	 *
+	 */
 	function test_query_with_role() {
 
 		// Users with foo = bar or baz restricted to the author role.
@@ -92,6 +125,9 @@ class UserRoleTest extends WP_UnitTestCase {
 		$this->assertEquals( self::$author_ids, $query->get_results() );
 	}
 
+	/**
+	 *
+	 */
 	function test_meta_query_with_role() {
 		add_user_meta( self::$author_ids[0], 'foo', 'bar' );
 		add_user_meta( self::$author_ids[1], 'foo', 'baz' );
@@ -119,6 +155,9 @@ class UserRoleTest extends WP_UnitTestCase {
 	}
 
 
+	/**
+	 *
+	 */
 	public function test_roles_and_caps_should_be_populated_for_explicit_value_of_blog_id_on_nonms() {
 		$query = new WP_User_Query(
 			array(
@@ -194,7 +233,6 @@ class UserRoleTest extends WP_UnitTestCase {
 
 		$results = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$wpdb->userrole} WHERE site_id = %d", $b ) );
 		$this->assertEmpty( $results );
-
 	}
 
 
@@ -250,7 +288,6 @@ class UserRoleTest extends WP_UnitTestCase {
 		$found_1 = $query_1->get_results();
 
 		$this->assertEmpty( $found_1 );
-
 	}
 
 	/**
@@ -268,8 +305,6 @@ class UserRoleTest extends WP_UnitTestCase {
 		$this->assertSame( $role->network_id, (string) $network_id );
 		$this->assertSame( $role->site_id, (string) $blog_id );
 		$this->assertSame( $role->role, $role_name );
-
-
 	}
 
 	/**
@@ -292,7 +327,6 @@ class UserRoleTest extends WP_UnitTestCase {
 
 		$role_2 = wp_user_roles()->get_role( self::$admin_ids[1], $role_name, $blog_id, $network_id );
 		$this->assertEmpty( $role_2 );
-
 	}
 
 	/**
@@ -300,14 +334,17 @@ class UserRoleTest extends WP_UnitTestCase {
 	 */
 	public function test_user_count() {
 		$b = self::factory()->blog->create();
-		array_map( function ( $user_id ) use ( $b ) {
-			add_user_to_blog( $b, $user_id, 'editor' );
-		}, self::$sub_ids );
+		array_map(
+			function ( $user_id ) use ( $b ) {
+					add_user_to_blog( $b, $user_id, 'editor' );
+			},
+			self::$sub_ids
+		);
 		$counts = count_users( 'time', $b );
 		$this->assertArrayHasKey( 'avail_roles', $counts );
 		$this->assertArrayHasKey( 'total_users', $counts );
 		$this->assertArrayHasKey( 'editor', $counts['avail_roles'] );
-		$this->assertSame( $counts["avail_roles"]["editor"], count( self::$sub_ids ) );
+		$this->assertSame( $counts['avail_roles']['editor'], count( self::$sub_ids ) );
 
 		remove_user_from_blog( self::$sub_ids[0], $b );
 
@@ -315,7 +352,7 @@ class UserRoleTest extends WP_UnitTestCase {
 		$this->assertArrayHasKey( 'avail_roles', $counts_1 );
 		$this->assertArrayHasKey( 'total_users', $counts_1 );
 		$this->assertArrayHasKey( 'editor', $counts_1['avail_roles'] );
-		$this->assertSame( $counts_1["avail_roles"]["editor"], count( self::$sub_ids ) - 1 );
+		$this->assertSame( $counts_1['avail_roles']['editor'], count( self::$sub_ids ) - 1 );
 	}
 
 }
