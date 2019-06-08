@@ -539,7 +539,12 @@ class User_Roles {
 	public function pre_count_users( $count, $strategy, $site_id ) {
 		global $wpdb;
 
-		if ( '1' !== get_network_option( get_current_network_id(), 'user_role.migrated', 0 ) ) {
+
+		if ( ! is_null( $count ) ) {
+			return $count;
+		}
+
+		if ( 1 !== get_network_option( get_current_network_id(), 'user_role.migrated', 0 ) ) {
 			return $count;
 		}
 
