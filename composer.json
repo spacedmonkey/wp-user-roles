@@ -3,14 +3,14 @@
   "description": "Improve performance of user queries by adding a new table.",
   "homepage": "https://github.com/spacedmonkey/wp-user-roles",
   "type": "wordpress-muplugin",
-  "license"    : "GPL-2.0-or-later",
+  "license": "GPL-2.0-or-later",
   "authors": [
     {
       "name": "Jonny Harris",
       "email": "jon@spacedmonkey.co.uk"
     }
   ],
-  "support"    : {
+  "support": {
     "issues": "https://github.com/spacedmonkey/wp-user-roles/issues",
     "source": "https://github.com/spacedmonkey/wp-user-roles"
   },
@@ -26,5 +26,8 @@
     "phpcompatibility/phpcompatibility-paragonie": "*",
     "phpcompatibility/phpcompatibility-wp": "*",
     "dealerdirect/phpcodesniffer-composer-installer": "^0.4.3"
+  },
+  "suggest": {
+     "spacedmonkey/wp-user-query-cache": "Compatible with wp user roles and improves user query caching and performance. "
   }
 }

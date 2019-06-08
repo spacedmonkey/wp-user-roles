@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name:     WP User Roles
- * Plugin URI:      https://www.spacedmonkey.com/
+ * Plugin URI:      https://github.com/spacedmonkey/wp-user-roles
  * Description:     Improve performance of user queries by adding a new table.
  * Author:          Jonny Harris
  * Author URI:      https://www.spacedmonkey.com/
@@ -54,7 +54,7 @@ function wp_user_roles_uninstall() {
 register_activation_hook( __FILE__, 'wp_user_roles_activation' );
 register_uninstall_hook( __FILE__, 'wp_user_roles_uninstall' );
 
-wp_user_roles()->bootstrap();
+//wp_user_roles()->bootstrap();
 
 // Only include wp-cli script if WP CLI is active.
 if ( defined( 'WP_CLI' ) && WP_CLI ) {
