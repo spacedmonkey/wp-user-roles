@@ -2,12 +2,13 @@
 /**
  * Plugin Name:     WP User Roles
  * Plugin URI:      https://github.com/spacedmonkey/wp-user-roles
- * Description:     Improve performance of user queries by adding a new table.
- * Author:          Jonny Harris
- * Author URI:      https://www.spacedmonkey.com/
- * Text Domain:     wp-user-roles
- * Domain Path:     /languages
- * Version:         1.0.0
+ * Description:       Improve performance of user queries by adding a new table.
+ * Author:            Jonny Harris
+ * Author URI:        https://www.spacedmonkey.com/
+ * Text Domain:       wp-user-roles
+ * Domain Path:       /languages
+ * Version:           1.0.0
+ * GitHub Plugin URI: https://github.com/spacedmonkey/wp-user-roles
  *
  * @package wp-user-roles
  */
